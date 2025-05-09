@@ -1,0 +1,25 @@
+# Entornos virtuales
+venv/
+__pycache__/
+*.py[cod]
+
+# Configuración de entorno
+.env
+.env.*
+
+# Logs y directorios de datos
+logs/
+storage/
+
+# Archivos de base de datos locales
+*.db
+*.sqlite3
+
+# IDEs y editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Otros
+*.log

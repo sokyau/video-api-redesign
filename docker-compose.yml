@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - API_KEY=${API_KEY}
+      - STORAGE_PATH=/app/storage
+      - BASE_URL=${BASE_URL:-http://localhost:8000/storage}
+      - MAX_FILE_AGE_HOURS=${MAX_FILE_AGE_HOURS:-24}
+      - WORKER_PROCESSES=${WORKER_PROCESSES:-4}
+      - FFMPEG_THREADS=${FFMPEG_THREADS:-4}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_QUEUE_LENGTH=${MAX_QUEUE_LENGTH:-100}
+      - MAX_PROCESSING_TIME=${MAX_PROCESSING_TIME:-1800}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - REDIS_URL=redis://redis:6379
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: video-api-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: video-api-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./storage:/app/storage
+    depends_on:
+      - app
+
+volumes:
+  redis_data:
