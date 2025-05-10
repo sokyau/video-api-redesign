@@ -19,12 +19,16 @@ logger = logging.getLogger(__name__)
 
 def register_blueprints(app):
  """Registra todos los blueprints de la API"""
- from src.api.routes.video_routes import video_bp
- # Importar otros blueprints a medida que se creen
+    from src.api.routes.video_routes import video_bp
+    from src.api.routes.media_routes import media_bp
+    from src.api.routes.system_routes import system_bp
+    from src.api.routes.ffmpeg_routes import ffmpeg_bp
 
  # Registrar blueprints
- app.register_blueprint(video_bp)
- # Registrar otros blueprints
+    app.register_blueprint(video_bp)
+    app.register_blueprint(media_bp)
+    app.register_blueprint(system_bp)
+    app.register_blueprint(ffmpeg_bp)
 
  return app
 def create_app():

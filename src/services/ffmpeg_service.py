@@ -7,6 +7,8 @@ from typing import List, Dict, Optional, Any
 import uuid
 from ..config import settings
 from ..api.middlewares.error_handler import ProcessingError
+from ..utils.file_utils import verify_file_integrity
+
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +232,10 @@ def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, web
     Returns:
         str: URL del archivo procesado
     """
+    from ..utils.file_utils import download_file, generate_temp_filename, verify_file_integrity
+    from ..services.storage_service import store_file
+    from ..services.webhook_service import notify_job_completed, notify_job_failed
+    
     if not job_id:
         job_id = str(uuid.uuid4())
     
@@ -237,52 +243,7 @@ def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, web
     
     input_paths = []
     output_path = None
-    
-    # Estas funciones deben ser importadas o definidas para que compose_ffmpeg funcione
-    # from ..utils.file_utils import download_file, generate_temp_filename
-    # from ..services.storage_service import store_file
-    # from ..services.webhook_service import notify_job_completed, notify_job_failed
-    # from ..services.ffmpeg_service import verify_file_integrity (ya está en este módulo si se define)
-
-    # Placeholder para verify_file_integrity si no está definido en este mismo archivo
-    # Debería ser importado o definido correctamente en un escenario real
-    def verify_file_integrity(file_path: str) -> bool:
-        logger.warning("verify_file_integrity no está completamente implementada en este contexto de ejemplo.")
-        return os.path.exists(file_path) and os.path.getsize(file_path) > 0
         
-    # Placeholder para download_file
-    def download_file(url: str, temp_dir: str, prefix: Optional[str] = None) -> str:
-        logger.warning(f"download_file no está completamente implementada en este contexto de ejemplo. Simulando descarga de {url}")
-        # Simular descarga creando un archivo temporal vacío
-        temp_file_name = (prefix or "") + os.path.basename(url)
-        dummy_path = os.path.join(temp_dir, temp_file_name if temp_file_name else "dummy_download.tmp")
-        # Asegurarse de que el directorio temporal exista
-        os.makedirs(temp_dir, exist_ok=True)
-        with open(dummy_path, 'w') as f:
-            f.write("dummy content") # Escribir algo para que no tenga tamaño 0
-        return dummy_path
-
-    # Placeholder para generate_temp_filename
-    def generate_temp_filename(prefix: str = "", suffix: str = "") -> str:
-        logger.warning("generate_temp_filename no está completamente implementada en este contexto de ejemplo.")
-        # Asegurarse de que el directorio temporal exista
-        os.makedirs(settings.TEMP_DIR, exist_ok=True)
-        return os.path.join(settings.TEMP_DIR, f"{prefix}{uuid.uuid4()}{suffix}")
-
-    # Placeholder para store_file
-    def store_file(file_path: str) -> str:
-        logger.warning(f"store_file no está completamente implementada en este contexto de ejemplo. Simulando almacenamiento de {file_path}")
-        return f"http://fake-storage.com/{os.path.basename(file_path)}"
-
-    # Placeholder para notify_job_completed
-    def notify_job_completed(job_id: str, webhook_url: str, result_url: str):
-        logger.warning(f"notify_job_completed no implementada. Job: {job_id}, Webhook: {webhook_url}, Result: {result_url}")
-
-    # Placeholder para notify_job_failed
-    def notify_job_failed(job_id: str, webhook_url: str, error_message: str):
-        logger.warning(f"notify_job_failed no implementada. Job: {job_id}, Webhook: {webhook_url}, Error: {error_message}")
-
-
     try:
         # Validar parámetros
         if not filter_complex:
@@ -358,5 +319,3 @@ def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, web
                 os.remove(output_path)
             except Exception as e_clean: # Renombrar para evitar conflicto
                 logger.warning(f"Error eliminando archivo temporal {output_path}: {str(e_clean)}")
-
-# --- END OF FILE ffmpeg_service.py ---

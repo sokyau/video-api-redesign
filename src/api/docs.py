@@ -1,3 +1,6 @@
+from flask import jsonify
+from flask_swagger_ui import get_swaggerui_blueprint
+
 def get_api_paths():
     """
     Obtiene información de rutas de la API
@@ -233,4 +236,80 @@ def get_api_paths():
                 }
             }
         }
-    } # --- LÍNEA MODIFICADA: Se añadió la llave de cierre '}' aquí ---
+    }
+
+def register_docs(app):
+    """
+    Registra la documentación de la API en la aplicación Flask.
+    """
+    # Configurar ruta para obtener especificación OpenAPI
+    @app.route('/api/docs/openapi.json')
+    def get_openapi_spec():
+        openapi_spec = {
+            "openapi": "3.0.0",
+            "info": {
+                "title": "Video Processing API",
+                "description": "API para procesamiento de video optimizada para creación de contenido.",
+                "version": "1.0.0"
+            },
+            "servers": [
+                {
+                    "url": "/",
+                    "description": "Servidor actual"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Video",
+                    "description": "Operaciones relacionadas con videos"
+                },
+                {
+                    "name": "Media",
+                    "description": "Operaciones relacionadas con archivos multimedia"
+                },
+                {
+                    "name": "FFmpeg",
+                    "description": "Operaciones avanzadas con FFmpeg"
+                },
+                {
+                    "name": "System",
+                    "description": "Operaciones del sistema"
+                }
+            ],
+            "paths": get_api_paths(),
+            "components": {
+                "securitySchemes": {
+                    "ApiKeyAuth": {
+                        "type": "apiKey",
+                        "in": "header",
+                        "name": "X-API-Key"
+                    }
+                }
+            },
+            "security": [
+                {
+                    "ApiKeyAuth": []
+                }
+            ]
+        }
+        return jsonify(openapi_spec)
+    
+    # Configurar Swagger UI
+    swagger_ui = get_swaggerui_blueprint(
+        '/api/docs',
+        '/api/docs/openapi.json',
+        config={
+            'app_name': "Video Processing API",
+            'deepLinking': True,
+            'displayOperationId': False,
+            'displayRequestDuration': True,
+            'docExpansion': "list",
+            'showExtensions': True,
+            'tagsSorter': "alpha"
+        }
+    )
+    
+    # Registrar blueprint de Swagger UI
+    app.register_blueprint(swagger_ui)
+    
+    return app

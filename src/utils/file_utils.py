@@ -11,7 +11,7 @@ from ..api.middlewares.error_handler import ValidationError, ProcessingError, No
 
 logger = logging.getLogger(__name__)
 
-def download_file(url: str, target_dir: Optional[str] = None) -> str:
+def download_file(url: str, target_dir: Optional[str] = None, prefix: Optional[str] = None) -> str:
     """
     Descarga un archivo desde una URL.
     
@@ -54,6 +54,12 @@ def download_file(url: str, target_dir: Optional[str] = None) -> str:
         filename = f"{uuid.uuid4()}.tmp"
     
     file_path = os.path.join(target_dir, filename)
+
+# Aplicar prefijo si se proporciona
+if prefix:
+    basename = os.path.basename(file_path)
+    dirname = os.path.dirname(file_path)
+    file_path = os.path.join(dirname, f"{prefix}{basename}")
     
     try:
         # Realizar la descarga

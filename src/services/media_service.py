@@ -44,6 +44,9 @@ def extract_audio(media_url: str, bitrate: str = '192k', format: str = 'mp3', jo
         logger.debug(f"Job {job_id}: Información multimedia: {media_info}")
         
         # Preparar ruta de salida
+output_path = generate_temp_filename(prefix=f"{job_id}_audio_", suffix=f".{format}")
+
+
         # Usamos os.path.join para construir rutas de forma segura
         output_filename = generate_temp_filename(prefix=f"{job_id}_audio_", suffix=f".{format}", temp_dir=settings.TEMP_DIR)
         output_path = os.path.join(settings.TEMP_DIR, output_filename)
@@ -137,6 +140,8 @@ def transcribe_media(media_url: str, language: str = 'auto', output_format: str 
         logger.info(f"Job {job_id}: Archivo multimedia descargado: {media_path}")
         
         # Extraer audio para transcripción (WAV es mejor para Whisper)
+audio_path = generate_temp_filename(prefix=f"{job_id}_audio_transcribe_", suffix=".wav")
+
         # Usamos os.path.join para construir rutas de forma segura
         audio_filename = generate_temp_filename(prefix=f"{job_id}_audio_transcribe_", suffix=".wav", temp_dir=settings.TEMP_DIR)
         audio_path = os.path.join(settings.TEMP_DIR, audio_filename)
