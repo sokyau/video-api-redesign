@@ -166,30 +166,27 @@ def get_file_extension(file_path: str) -> str:
     _, extension = os.path.splitext(file_path)
     return extension.lower()
 
-def verify_file_integrity(file_path: str) -> bool:
+def verify_file_integrity(file_path):
     """
     Verifica la integridad de un archivo.
     
     Args:
         file_path (str): Ruta al archivo
-        
-    Returns:
-        bool: True si el archivo es válido
     
-    Raises:
-        NotFoundError: Si el archivo no existe
+    Returns:
+        bool: True si el archivo es válido, False en caso contrario
     """
     if not os.path.exists(file_path):
-        raise NotFoundError(f"El archivo {file_path} no existe")
+        return False
     
-    # Verificar que no está vacío
     if os.path.getsize(file_path) == 0:
         return False
     
-    # Verificación básica de lectura
+    # Verificación adicional: intentar abrir el archivo
     try:
         with open(file_path, 'rb') as f:
-            f.read(1024)  # Leer un bloque pequeño
+            # Leer los primeros bytes para verificar que se puede acceder
+            f.read(1024)
         return True
     except Exception as e:
         logger.error(f"Error verificando integridad de archivo {file_path}: {str(e)}")

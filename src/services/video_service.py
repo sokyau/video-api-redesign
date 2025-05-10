@@ -3,9 +3,11 @@ import logging
 import uuid
 import time
 from ..utils.file_utils import download_file, generate_temp_filename
-from ..services.ffmpeg_service import run_ffmpeg_command
+from ..services.ffmpeg_service import run_ffmpeg_command, verify_file_integrity
 from ..services.storage_service import store_file
 from ..config import settings
+from ..utils.webhook_utils import notify_job_completed, notify_job_failed
+from ..utils.error_utils import ProcessingError
 
 logger = logging.getLogger(__name__)
 
@@ -242,3 +244,97 @@ def process_meme_overlay(
                 except Exception:
                     pass
         raise
+
+def concatenate_videos_service(video_urls, job_id=None, webhook_url=None):
+    """
+    Concatena múltiples videos en uno solo.
+    
+    Args:
+        video_urls: Lista de URLs de videos
+        job_id: ID de trabajo opcional
+        webhook_url: URL para notificación de finalización
+    
+    Returns:
+        str: URL del video concatenado
+    """
+    if not job_id:
+        job_id = str(uuid.uuid4())
+    
+    logger.info(f"Job {job_id}: Iniciando concatenación de {len(video_urls)} videos")
+    
+    video_paths = []
+    output_path = None
+    
+    try:
+        # Descargar videos
+        for i, url in enumerate(video_urls):
+            path = download_file(url, settings.TEMP_DIR)
+            video_paths.append(path)
+            logger.info(f"Job {job_id}: Video {i+1}/{len(video_urls)} descargado: {path}")
+        
+        # Generar archivo de lista para FFmpeg
+        list_file = os.path.join(settings.TEMP_DIR, f"{job_id}_list.txt")
+        with open(list_file, 'w') as f:
+            for path in video_paths:
+                f.write(f"file '{path}'\n")
+        
+        # Preparar ruta de salida
+        output_path = generate_temp_filename(prefix=f"{job_id}_concat_", suffix=".mp4")
+        
+        # Comando FFmpeg para concatenación
+        command = [
+            'ffmpeg',
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', list_file,
+            '-c', 'copy',
+            output_path
+        ]
+        
+        # Ejecutar FFmpeg
+        run_ffmpeg_command(command)
+        
+        # Verificar archivo de salida
+        if not verify_file_integrity(output_path):
+            raise ProcessingError("El archivo de video concatenado no es válido")
+        
+        # Almacenar archivo de video
+        result_url = store_file(output_path)
+        logger.info(f"Job {job_id}: Videos concatenados y almacenados: {result_url}")
+        
+        # Enviar notificación si se solicita
+        if webhook_url:
+            notify_job_completed(job_id, webhook_url, result_url)
+        
+        return result_url
+        
+    except Exception as e:
+        logger.exception(f"Job {job_id}: Error concatenando videos: {str(e)}")
+        
+        # Enviar notificación de error si se solicita
+        if webhook_url:
+            notify_job_failed(job_id, webhook_url, str(e))
+        
+        # Re-lanzar excepción
+        raise
+finally:
+        # Limpiar archivos temporales
+        for path in video_paths:
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception as e:
+                    logger.warning(f"Error eliminando archivo temporal {path}: {str(e)}")
+        
+        if output_path and os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except Exception as e:
+                logger.warning(f"Error eliminando archivo temporal {output_path}: {str(e)}")
+        
+        # Eliminar archivo de lista
+        if 'list_file' in locals() and os.path.exists(list_file):
+            try:
+                os.remove(list_file)
+            except Exception:
+                pass

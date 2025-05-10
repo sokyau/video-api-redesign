@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from ...services.video_service import add_captions_to_video, process_meme_overlay
+from ...services.video_service import add_captions_to_video, process_meme_overlay, concatenate_videos_service
 from ..middlewares.authentication import require_api_key
 from ..middlewares.request_validator import validate_json
 import logging
@@ -44,6 +44,24 @@ meme_overlay_schema = {
     "required": ["video_url", "meme_url"],
     "additionalProperties": False
 }
+
+# Schema para validación de concatenate
+concatenate_schema = {
+    "type": "object",
+    "properties": {
+        "video_urls": {
+            "type": "array",
+            "items": {"type": "string", "format": "uri"},
+            "minItems": 2
+        },
+        "webhook_url": {"type": "string", "format": "uri"},
+        "id": {"type": "string"}
+    },
+    "required": ["video_urls"],
+    "additionalProperties": False
+}
+
+
 
 @video_bp.route('/caption', methods=['POST'])
 @require_api_key
@@ -99,6 +117,47 @@ def caption_video():
             "message": str(e)
         }), 500
 
+@video_bp.route('/concatenate', methods=['POST'])
+@require_api_key
+@validate_json(concatenate_schema)
+def concatenate_videos():
+    """
+    Concatena múltiples videos en uno solo.
+    
+    Request:
+        - video_urls: Lista de URLs de videos
+        - webhook_url: URL para webhook de notificación (opcional)
+        - id: ID personalizado (opcional)
+    
+    Response:
+        - JSON con URL del video procesado o estado del trabajo
+    """
+    data = request.get_json()
+    
+    try:
+        job_id = data.get('id')
+        
+        # Concatenar videos
+        result = concatenate_videos_service(
+            video_urls=data['video_urls'],
+            job_id=job_id,
+            webhook_url=data.get('webhook_url')
+        )
+        
+        return jsonify({
+            "status": "success",
+            "result": result,
+            "job_id": job_id
+        })
+        
+    except Exception as e:
+        logger.exception(f"Error concatenando videos: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "error": "processing_error",
+            "message": str(e)
+        }), 500
+
 @video_bp.route('/meme-overlay', methods=['POST'])
 @require_api_key
 @validate_json(meme_overlay_schema)
@@ -141,6 +200,86 @@ def meme_overlay():
         
     except Exception as e:
         logger.exception(f"Error procesando meme overlay: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "error": "processing_error",
+            "message": str(e)
+        }), 500
+
+# Schema para validación de animated_text
+animated_text_schema = {
+    "type": "object",
+    "properties": {
+        "video_url": {"type": "string", "format": "uri"},
+        "text": {"type": "string"},
+        "animation": {
+            "type": "string",
+            "enum": ["fade", "slide", "zoom", "typewriter", "bounce"]
+        },
+        "position": {
+            "type": "string",
+            "enum": ["top", "bottom", "center"]
+        },
+        "font": {"type": "string"},
+        "font_size": {"type": "integer", "minimum": 12, "maximum": 120},
+        "color": {"type": "string"},
+        "duration": {"type": "number", "minimum": 1, "maximum": 20},
+        "webhook_url": {"type": "string", "format": "uri"},
+        "id": {"type": "string"}
+    },
+    "required": ["video_url", "text"],
+    "additionalProperties": False
+}
+
+@video_bp.route('/animated-text', methods=['POST'])
+@require_api_key
+@validate_json(animated_text_schema)
+def animated_text():
+    """
+    Añade texto animado a un video.
+    
+    Request:
+        - video_url: URL del video
+        - text: Texto a animar
+        - animation: Tipo de animación (opcional)
+        - position: Posición del texto (opcional)
+        - font: Fuente del texto (opcional)
+        - font_size: Tamaño de la fuente (opcional)
+        - color: Color del texto (opcional)
+        - duration: Duración de la animación (opcional)
+        - webhook_url: URL para webhook de notificación (opcional)
+        - id: ID personalizado (opcional)
+    
+    Response:
+        - JSON con URL del video procesado o estado del trabajo
+    """
+    data = request.get_json()
+    
+    try:
+        job_id = data.get('id')
+        
+        # Procesar texto animado
+        result = animated_text_service(
+            video_url=data['video_url'],
+            text=data['text'],
+            animation=data.get('animation', 'fade'),
+            position=data.get('position', 'bottom'),
+            font=data.get('font', 'Arial'),
+            font_size=data.get('font_size', 36),
+            color=data.get('color', 'white'),
+            duration=data.get('duration', 3.0),
+            job_id=job_id,
+            webhook_url=data.get('webhook_url')
+        )
+        
+        return jsonify({
+            "status": "success",
+            "result": result,
+            "job_id": job_id
+        })
+        
+    except Exception as e:
+        logger.exception(f"Error procesando texto animado: {str(e)}")
         return jsonify({
             "status": "error",
             "error": "processing_error",

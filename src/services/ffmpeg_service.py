@@ -206,3 +206,103 @@ def get_media_info(file_path: str) -> Dict[str, Any]:
             f"Error inesperado obteniendo información multimedia: {str(e)}",
             details={"file_path": file_path}
         )
+# src/services/ffmpeg_service.py - Añadir al archivo existente
+
+def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, webhook_url=None):
+    """
+    Realiza una composición avanzada con FFmpeg.
+    
+    Args:
+        inputs: Lista de entradas (URLs y opciones)
+        filter_complex: Filtro complejo de FFmpeg
+        output_options: Opciones para la salida
+        job_id: ID de trabajo opcional
+        webhook_url: URL para notificación de finalización
+    
+    Returns:
+        str: URL del archivo procesado
+    """
+    if not job_id:
+        job_id = str(uuid.uuid4())
+    
+    logger.info(f"Job {job_id}: Iniciando composición FFmpeg con {len(inputs)} entradas")
+    
+    input_paths = []
+    output_path = None
+    
+    try:
+        # Validar parámetros
+        if not filter_complex:
+            raise ValueError("Se requiere el parámetro filter_complex")
+        
+        # Descargar archivos de entrada
+        for i, input_data in enumerate(inputs):
+            url = input_data["url"]
+            path = download_file(url, settings.TEMP_DIR)
+            input_paths.append(path)
+            logger.info(f"Job {job_id}: Entrada {i+1}/{len(inputs)} descargada: {path}")
+        
+        # Preparar ruta de salida
+        output_path = generate_temp_filename(prefix=f"{job_id}_ffmpeg_", suffix=".mp4")
+        
+        # Construir comando FFmpeg
+        command = ['ffmpeg']
+        
+        # Añadir entradas con sus opciones
+        for i, (path, input_data) in enumerate(zip(input_paths, inputs)):
+            if "options" in input_data and input_data["options"]:
+                command.extend(input_data["options"])
+            command.extend(['-i', path])
+        
+        # Añadir filtro complejo
+        command.extend(['-filter_complex', filter_complex])
+        
+        # Añadir opciones de salida
+        if output_options:
+            command.extend(output_options)
+        
+        # Añadir ruta de salida
+        command.append(output_path)
+        
+        # Ejecutar FFmpeg
+        run_ffmpeg_command(command)
+        
+        # Verificar archivo de salida
+        if not verify_file_integrity(output_path):
+            raise ProcessingError("El archivo de salida FFmpeg no es válido")
+        
+        # Almacenar archivo procesado
+        result_url = store_file(output_path)
+        logger.info(f"Job {job_id}: Composición FFmpeg completada y almacenada: {result_url}")
+        
+        # Enviar notificación si se solicita
+        if webhook_url:
+            notify_job_completed(job_id, webhook_url, result_url)
+        
+        return result_url
+        
+    except Exception as e:
+        logger.exception(f"Job {job_id}: Error en composición FFmpeg: {str(e)}")
+        
+        # Enviar notificación de error si se solicita
+        if webhook_url:
+            notify_job_failed(job_id, webhook_url, str(e))
+        
+        # Re-lanzar excepción
+        raise
+        
+    finally:
+        # Limpiar archivos temporales
+        for path in input_paths:
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception as e:
+                    logger.warning(f"Error eliminando archivo temporal {path}: {str(e)}")
+        
+        if output_path and os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except Exception as e:
+                logger.warning(f"Error eliminando archivo temporal {output_path}: {str(e)}")
+
