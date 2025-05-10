@@ -7,12 +7,26 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import time
 
 # Importar configuración
+from src.api.routes import register_routes
+from src.api.docs import register_docs
 from .config import settings
 
 # Configurar logging
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
+# src/app.py - Añadir después de crear la app
+
+def register_blueprints(app):
+ """Registra todos los blueprints de la API"""
+ from src.api.routes.video_routes import video_bp
+ # Importar otros blueprints a medida que se creen
+
+ # Registrar blueprints
+ app.register_blueprint(video_bp)
+ # Registrar otros blueprints
+
+ return app
 def create_app():
     """Crea y configura la aplicación Flask"""
     # Crear aplicación Flask
@@ -28,6 +42,9 @@ def create_app():
     app.config['STORAGE_PATH'] = settings.STORAGE_PATH
     app.config['DEBUG'] = settings.DEBUG
     
+    register_routes(app)
+    register_docs(app)
+
     # Registrar before/after request handlers
     @app.before_request
     def before_request():
@@ -117,3 +134,4 @@ app = create_app()
 if __name__ == '__main__':
     # Solo para desarrollo
     app.run(host='0.0.0.0', port=8080, debug=settings.DEBUG)
+

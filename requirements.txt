@@ -12,6 +12,7 @@ requests==2.31.0
 python-dotenv==1.0.0
 Pillow==10.0.1
 python-magic==0.4.27
+redis==4.5.5
 
 # Procesamiento de video y audio
 ffmpeg-python==0.2.0

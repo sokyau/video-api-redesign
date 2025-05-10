@@ -1,43 +1,60 @@
-# Usar imagen base oficial de Python
+# Dockerfile mejorado
 FROM python:3.10-slim
 
-# Establecer directorio de trabajo
-WORKDIR /app
+# Configurar etiquetas
+LABEL maintainer="your-email@example.com"
+LABEL version="1.0"
+LABEL description="Video Processing API"
 
-# Instalar dependencias del sistema necesarias (incluye FFmpeg)
+# Establecer variables de entorno
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsm6 \
     libxext6 \
     libgl1 \
     curl \
+    wget \
+    gnupg \
+    lsb-release \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos de dependencias
+# Crear y configurar usuario no-root
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar requirements primero (aprovecha la caché de Docker)
 COPY requirements.txt .
 
 # Instalar dependencias de Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el código de la aplicación
+# Copiar código de la aplicación
 COPY src/ /app/src/
-COPY scripts/ /app/scripts/
-COPY tests/ /app/tests/
-COPY .env.example /app/.env.example
-COPY README.md /app/
-COPY wsgi.py /app/
+COPY wsgi.py .
+COPY .env.example .
 
-# Crear directorios necesarios con permisos adecuados
-RUN mkdir -p /app/storage /app/logs \
-    && chmod -R 755 /app/storage /app/logs
+# Crear directorios necesarios
+RUN mkdir -p /app/storage /app/logs /app/temp \
+    && chown -R appuser:appuser /app
 
-# Establecer variable de entorno para Python
-ENV PYTHONUNBUFFERED=1
-ENV WORKER_PROCESSES=4
+# Cambiar a usuario no-root
+USER appuser
 
-# Exponer el puerto que usará la aplicación
+# Exponer puerto
 EXPOSE 8000
 
-# Comando para iniciar la aplicación con Gunicorn
-CMD gunicorn wsgi:app --bind 0.0.0.0:8000 --workers ${WORKER_PROCESSES} --timeout 300
+# Configurar health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8000/api/v1/system/health || exit 1
+
+# Comando de inicio
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "300", "wsgi:app"]

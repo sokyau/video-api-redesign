@@ -1,6 +1,7 @@
 version: '3.8'
+
 services:
-  app:
+  api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,49 +12,60 @@ services:
     volumes:
       - ./storage:/app/storage
       - ./logs:/app/logs
+      - ./temp:/app/temp
     env_file:
       - .env
     environment:
-      - API_KEY=${API_KEY}
-      - STORAGE_PATH=/app/storage
-      - BASE_URL=${BASE_URL:-http://localhost:8000/storage}
-      - MAX_FILE_AGE_HOURS=${MAX_FILE_AGE_HOURS:-24}
-      - WORKER_PROCESSES=${WORKER_PROCESSES:-4}
-      - FFMPEG_THREADS=${FFMPEG_THREADS:-4}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - MAX_QUEUE_LENGTH=${MAX_QUEUE_LENGTH:-100}
-      - MAX_PROCESSING_TIME=${MAX_PROCESSING_TIME:-1800}
-      - ENVIRONMENT=${ENVIRONMENT:-production}
-      - REDIS_URL=redis://redis:6379
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 1m
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/system/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - video-api-network
 
   redis:
     image: redis:7-alpine
     container_name: video-api-redis
     restart: unless-stopped
     volumes:
-      - redis_data:/data
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - video-api-network
 
-  nginx:
-    image: nginx:stable-alpine
-    container_name: video-api-nginx
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-api-worker
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
+    command: ["python", "-m", "src.worker"]
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
       - ./storage:/app/storage
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - app
+      - redis
+      - api
+    networks:
+      - video-api-network
 
 volumes:
-  redis_data:
+  redis-data:
+
+networks:
+  video-api-network:
+    driver: bridge
