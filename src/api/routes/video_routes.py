@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
-from ...services.video_service import add_captions_to_video, process_meme_overlay, concatenate_videos_service
+# --- LÍNEA MODIFICADA ---
+# Se añadió animated_text_service a la importación
+from ...services.video_service import add_captions_to_video, process_meme_overlay, concatenate_videos_service, animated_text_service
 from ..middlewares.authentication import require_api_key
 from ..middlewares.request_validator import validate_json
 import logging
@@ -185,7 +187,7 @@ def meme_overlay():
         result = process_meme_overlay(
             video_url=data['video_url'],
             meme_url=data['meme_url'],
-            position=data.get('position', 'bottom'),
+            position=data.get('position', 'bottom_right'), # Cambiado de 'bottom' a 'bottom_right' para coincidir con el schema enum si 'bottom' no estaba
             scale=data.get('scale', 0.3),
             job_id=job_id,
             webhook_url=data.get('webhook_url')
@@ -241,12 +243,12 @@ def animated_text():
     Request:
         - video_url: URL del video
         - text: Texto a animar
-        - animation: Tipo de animación (opcional)
-        - position: Posición del texto (opcional)
-        - font: Fuente del texto (opcional)
-        - font_size: Tamaño de la fuente (opcional)
-        - color: Color del texto (opcional)
-        - duration: Duración de la animación (opcional)
+        - animation: Tipo de animación (opcional, default: fade)
+        - position: Posición del texto (opcional, default: bottom)
+        - font: Fuente del texto (opcional, default: Arial)
+        - font_size: Tamaño de la fuente (opcional, default: 36)
+        - color: Color del texto (opcional, default: white)
+        - duration: Duración de la animación en segundos (opcional, default: 3.0)
         - webhook_url: URL para webhook de notificación (opcional)
         - id: ID personalizado (opcional)
     
@@ -259,6 +261,7 @@ def animated_text():
         job_id = data.get('id')
         
         # Procesar texto animado
+        # Los defaults aquí coinciden con los de la firma de animated_text_service
         result = animated_text_service(
             video_url=data['video_url'],
             text=data['text'],

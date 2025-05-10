@@ -1,4 +1,3 @@
-
 # src/services/queue_service.py
 import logging
 import time

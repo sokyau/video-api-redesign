@@ -1,4 +1,3 @@
-
 # src/services/webhook_service.py
 import json
 import logging

@@ -1,9 +1,16 @@
-# src/api/routes/ffmpeg_routes.py
+# --- START OF FILE ffmpeg_routes.py ---
 
 from flask import Blueprint, request, jsonify
 from ..middlewares.authentication import require_api_key
 from ..middlewares.request_validator import validate_json
-from ...services.ffmpeg_service import run_ffmpeg_command, compose_ffmpeg
+# La siguiente línea de importación es correcta si la estructura de archivos es:
+# src/
+# ├── api/
+# │   └── routes/
+# │       └── ffmpeg_routes.py
+# └── services/
+#     └── ffmpeg_service.py
+from ...services.ffmpeg_service import run_ffmpeg_command, compose_ffmpeg # <--- LÍNEA DE IMPORTACIÓN
 import logging
 
 logger = logging.getLogger(__name__)
@@ -61,8 +68,9 @@ def ffmpeg_compose():
     try:
         job_id = data.get('id')
         
-        # Procesar composición FFmpeg
-        result = compose_ffmpeg(
+        # Procesar composición FFmpeg 
+        # El uso de la función es correcto según su firma:
+        result = compose_ffmpeg( # <--- USO DE LA FUNCIÓN
             inputs=data['inputs'],
             filter_complex=data['filter_complex'],
             output_options=data.get('output_options', []),
@@ -73,13 +81,16 @@ def ffmpeg_compose():
         return jsonify({
             "status": "success",
             "result": result,
-            "job_id": job_id
+            "job_id": job_id # Asegúrate de que job_id se genere si es None en compose_ffmpeg y se devuelva
         })
         
     except Exception as e:
         logger.exception(f"Error en composición FFmpeg: {str(e)}")
+        # Considera devolver el job_id también en caso de error si es relevante
         return jsonify({
             "status": "error",
             "error": "processing_error",
             "message": str(e)
         }), 500
+
+# --- END OF FILE ffmpeg_routes.py ---

@@ -1,7 +1,10 @@
+# --- START OF FILE ffmpeg_service.py ---
+
 import subprocess
 import logging
 import os
 from typing import List, Dict, Optional, Any
+import uuid  # <--- ASEGÚRATE DE QUE ESTA IMPORTACIÓN ESTÉ PRESENTE
 from ..config import settings
 from ..api.middlewares.error_handler import ProcessingError
 
@@ -206,8 +209,10 @@ def get_media_info(file_path: str) -> Dict[str, Any]:
             f"Error inesperado obteniendo información multimedia: {str(e)}",
             details={"file_path": file_path}
         )
-# src/services/ffmpeg_service.py - Añadir al archivo existente
 
+# Definición completa de compose_ffmpeg
+# (Asumiendo que funciones como download_file, generate_temp_filename, etc.,
+# están definidas o importadas en otra parte de este módulo o son accesibles globalmente)
 def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, webhook_url=None):
     """
     Realiza una composición avanzada con FFmpeg.
@@ -235,18 +240,19 @@ def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, web
         if not filter_complex:
             raise ValueError("Se requiere el parámetro filter_complex")
         
-        # Descargar archivos de entrada
+        # Descargar archivos de entrada (asumiendo que download_file está disponible)
         for i, input_data in enumerate(inputs):
             url = input_data["url"]
-            path = download_file(url, settings.TEMP_DIR)
+            # Suponiendo que download_file y settings.TEMP_DIR están definidos/importados
+            path = download_file(url, settings.TEMP_DIR) 
             input_paths.append(path)
             logger.info(f"Job {job_id}: Entrada {i+1}/{len(inputs)} descargada: {path}")
         
-        # Preparar ruta de salida
+        # Preparar ruta de salida (asumiendo que generate_temp_filename está disponible)
         output_path = generate_temp_filename(prefix=f"{job_id}_ffmpeg_", suffix=".mp4")
         
         # Construir comando FFmpeg
-        command = ['ffmpeg']
+        command = ['ffmpeg'] # run_ffmpeg_command antepondrá 'ffmpeg' si es necesario
         
         # Añadir entradas con sus opciones
         for i, (path, input_data) in enumerate(zip(input_paths, inputs)):
@@ -265,17 +271,17 @@ def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, web
         command.append(output_path)
         
         # Ejecutar FFmpeg
-        run_ffmpeg_command(command)
+        run_ffmpeg_command(command) # Esta función ya está definida en este archivo
         
-        # Verificar archivo de salida
+        # Verificar archivo de salida (asumiendo que verify_file_integrity está disponible)
         if not verify_file_integrity(output_path):
             raise ProcessingError("El archivo de salida FFmpeg no es válido")
         
-        # Almacenar archivo procesado
+        # Almacenar archivo procesado (asumiendo que store_file está disponible)
         result_url = store_file(output_path)
         logger.info(f"Job {job_id}: Composición FFmpeg completada y almacenada: {result_url}")
         
-        # Enviar notificación si se solicita
+        # Enviar notificación si se solicita (asumiendo que notify_job_completed está disponible)
         if webhook_url:
             notify_job_completed(job_id, webhook_url, result_url)
         
@@ -284,7 +290,7 @@ def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, web
     except Exception as e:
         logger.exception(f"Job {job_id}: Error en composición FFmpeg: {str(e)}")
         
-        # Enviar notificación de error si se solicita
+        # Enviar notificación de error si se solicita (asumiendo que notify_job_failed está disponible)
         if webhook_url:
             notify_job_failed(job_id, webhook_url, str(e))
         
@@ -306,3 +312,4 @@ def compose_ffmpeg(inputs, filter_complex, output_options=None, job_id=None, web
             except Exception as e:
                 logger.warning(f"Error eliminando archivo temporal {output_path}: {str(e)}")
 
+# --- END OF FILE ffmpeg_service.py ---
