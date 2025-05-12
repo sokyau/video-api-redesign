@@ -5,7 +5,6 @@ from unittest.mock import patch, MagicMock
 from src.services.video_service import add_captions_to_video, process_meme_overlay
 from src.api.middlewares.error_handler import ProcessingError
 
-# Mocks para pruebas
 @pytest.fixture
 def mock_paths():
     return {
@@ -15,7 +14,6 @@ def mock_paths():
         'output_path': '/tmp/output.mp4'
     }
 
-# Test para add_captions_to_video
 @patch('src.services.video_service.download_file')
 @patch('src.services.video_service.generate_temp_filename')
 @patch('src.services.video_service.run_ffmpeg_command')
@@ -23,41 +21,33 @@ def mock_paths():
 def test_add_captions_to_video_success(
     mock_store_file, mock_run_ffmpeg, mock_gen_temp, mock_download, mock_paths
 ):
-    # Configurar mocks
     mock_download.side_effect = [mock_paths['video_path'], mock_paths['subtitles_path']]
     mock_gen_temp.return_value = mock_paths['output_path']
     mock_run_ffmpeg.return_value = {'success': True}
     mock_store_file.return_value = 'https://example.com/storage/output.mp4'
     
-    # Crear archivos temporales para el test
     for path in [mock_paths['video_path'], mock_paths['subtitles_path']]:
         with open(path, 'w') as f:
             f.write('test')
     
-    # Ejecutar función
     result = add_captions_to_video(
         video_url='https://example.com/video.mp4',
         subtitles_url='https://example.com/subtitles.srt'
     )
     
-    # Verificaciones
     assert result == 'https://example.com/storage/output.mp4'
     assert mock_download.call_count == 2
     assert mock_run_ffmpeg.call_count == 1
     assert mock_store_file.call_count == 1
     
-    # Limpiar archivos temporales
     for path in [mock_paths['video_path'], mock_paths['subtitles_path']]:
         if os.path.exists(path):
             os.remove(path)
 
-# Test para manejo de error
 @patch('src.services.video_service.download_file')
 def test_add_captions_to_video_download_error(mock_download):
-    # Simular error de descarga
     mock_download.side_effect = ProcessingError("Error de descarga")
     
-    # Verificar que se propaga la excepción
     with pytest.raises(ProcessingError) as excinfo:
         add_captions_to_video(
             video_url='https://example.com/video.mp4',
