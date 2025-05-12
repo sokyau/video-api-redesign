@@ -164,6 +164,7 @@ def fetch_pending_task() -> Optional[Dict[str, Any]]:
     
     return json.loads(task_data)
 
+# Corregido
 def register_task_functions(task_functions: Dict[str, Callable]) -> None:
     """
     Registra funciones que pueden ser ejecutadas por los workers
@@ -174,9 +175,12 @@ def register_task_functions(task_functions: Dict[str, Callable]) -> None:
     # Esta información puede almacenarse en memoria
     # En una implementación más avanzada, podría ser útil 
     # almacenar metadatos de las funciones en Redis
-    global TASK_FUNCTIONS
-    TASK_FUNCTIONS = task_functions
+    global task_functions_registry
+    task_functions_registry = task_functions
     logger.info(f"Registradas {len(task_functions)} funciones de tarea")
+
+# Inicializar la variable global
+task_functions_registry = {}
 
 def get_queue_stats() -> Dict[str, Any]:
     """

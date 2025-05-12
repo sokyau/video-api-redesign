@@ -53,16 +53,19 @@ def download_file(url: str, target_dir: Optional[str] = None, prefix: Optional[s
         # Generar nombre aleatorio con extensión si no se puede determinar
         filename = f"{uuid.uuid4()}.tmp"
     
+# Corregido
     file_path = os.path.join(target_dir, filename)
 
-# Aplicar prefijo si se proporciona
-if prefix:
-    basename = os.path.basename(file_path)
-    dirname = os.path.dirname(file_path)
-    file_path = os.path.join(dirname, f"{prefix}{basename}")
+    # Aplicar prefijo si se proporciona
+    if prefix:
+        basename = os.path.basename(file_path)
+        dirname = os.path.dirname(file_path)
+        file_path = os.path.join(dirname, f"{prefix}{basename}")
     
     try:
         # Realizar la descarga
+        # Realizar la descarga
+
         with requests.get(url, stream=True, timeout=60) as response:
             response.raise_for_status()
             

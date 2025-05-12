@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # src/app.py - Añadir después de crear la app
 
+# Corregido
 def register_blueprints(app):
     """Registra todos los blueprints de la API"""
     from src.api.routes.video_routes import video_bp

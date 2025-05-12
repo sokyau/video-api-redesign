@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
-# --- LÍNEA MODIFICADA ---
-# Se añadió animated_text_service a la importación
-from ...services.video_service import add_captions_to_video, process_meme_overlay, concatenate_videos_service, animated_text_service
+from ...services.video_service import add_captions_to_video, process_meme_overlay, concatenate_videos_service
+from ...services.animation_service import animated_text_service
 from ..middlewares.authentication import require_api_key
 from ..middlewares.request_validator import validate_json
 import logging
@@ -145,7 +144,7 @@ def concatenate_videos():
             job_id=job_id,
             webhook_url=data.get('webhook_url')
         )
-        
+        	
         return jsonify({
             "status": "success",
             "result": result,

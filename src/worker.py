@@ -4,9 +4,10 @@ import os
 import time
 import logging
 import signal
-from src.services.queue_service import process_queue
-from src.services.cleanup_service import cleanup_service
-from src.config import settings
+# Corregido
+from .services.queue_service import process_queue
+from .services.cleanup_service import cleanup_service
+from .config import settings
 
 # Configurar logging
 logging.basicConfig(

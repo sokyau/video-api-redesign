@@ -5,8 +5,9 @@ import time
 import logging
 import signal
 import importlib
-from src.services.redis_queue_service import fetch_pending_task, update_task_status, TaskStatus
-from src.services.cleanup_service import cleanup_service
+# Corregido
+from .services.redis_queue_service import fetch_pending_task, update_task_status, TaskStatus
+from .services.cleanup_service import cleanup_service
 from src.config import settings
 
 # Configurar logging
